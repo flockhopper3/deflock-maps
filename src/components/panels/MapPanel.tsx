@@ -35,6 +35,7 @@ const BRAND_COLORS = [
   { from: '#f472b6', to: '#ec4899' },
   { from: '#fbbf24', to: '#f59e0b' },
   { from: '#94a3b8', to: '#64748b' },
+  { from: '#6b7280', to: '#4b5563' },
 ];
 
 // ─── Collapsible Section (top-level) ────────────────────────────────────────
@@ -405,32 +406,131 @@ export function MapPanelContent() {
     filters.surveillanceZones.length +
     filters.mountTypes.length;
 
-  // Viewport-reactive stats
+  // Viewport-reactive stats (respects active filters)
   const { bounds } = useMapStore();
-  const getCamerasInBounds = useCameraStore((s) => s.getCamerasInBounds);
+  const filteredCameras = useCameraStore((s) => s.filteredCameras);
 
   const viewportStats = useMemo(() => {
     if (!bounds) return { count: 0, uniqueBrands: 0, brands: [] as { name: string; count: number }[] };
 
-    const inView = getCamerasInBounds(bounds.north, bounds.south, bounds.east, bounds.west);
+    const inView = filteredCameras.filter(
+      (c) => c.lat >= bounds.south && c.lat <= bounds.north && c.lon >= bounds.west && c.lon <= bounds.east
+    );
 
-    // Aggregate brands
+    // Normalize OSM brand tags to canonical names (null = treat as unknown)
+    const normalizeBrand = (raw: string): string | null => {
+      const lower = raw.toLowerCase().trim();
+
+      // Garbage / not a real brand → treat as unknown
+      if (lower.startsWith('unk') || lower === 'unknown' || lower === 'generic'
+        || lower === 'other' || lower.length <= 1 || lower.startsWith('wikidata')
+        || lower.startsWith('q108') || lower === 'scm?') return null;
+
+      // Flock Safety (typos: floc, flock safetu, flock saftey, flow safety, etc.)
+      if (lower.startsWith('flock') || lower.startsWith('floc') || lower === 'flow safety') return 'Flock Safety';
+
+      // Motorola Solutions (incl Vigilant sub-brand, typos: mortorola, motorolla)
+      if (lower.startsWith('motor') || lower.startsWith('morto') || lower.startsWith('vigilant')) return 'Motorola Solutions';
+
+      // Genetec (typo: genetech, product: AutoVu)
+      if (lower.startsWith('genetec') || lower.startsWith('genete') || lower.startsWith('autovu')) return 'Genetec';
+
+      // Leonardo (incl ELSAG sub-brand)
+      if (lower.startsWith('leonardo') || lower.startsWith('elsag')) return 'Leonardo';
+
+      // Rekor (typo: rektor)
+      if (lower.startsWith('rekor') || lower === 'rektor') return 'Rekor';
+
+      // Neology (incl PIPS)
+      if (lower.startsWith('neology') || lower.startsWith('pips')) return 'Neology';
+
+      // Axis Communications
+      if (lower.startsWith('axis')) return 'Axis Communications';
+
+      // Ekin
+      if (lower.startsWith('ekin')) return 'Ekin';
+
+      // Ubicquia
+      if (lower.startsWith('ubicq')) return 'Ubicquia';
+
+      // Avigilon
+      if (lower.startsWith('avigilon')) return 'Avigilon';
+
+      // Verkada
+      if (lower.startsWith('verkada')) return 'Verkada';
+
+      // Axon
+      if (lower.startsWith('axon')) return 'Axon';
+
+      // Kapsch
+      if (lower.startsWith('kapsch')) return 'Kapsch';
+
+      // LiveView Technologies (typos: lifeview, LVT)
+      if (lower.startsWith('live') || lower.startsWith('life') || lower === 'lvt') return 'LiveView Technologies';
+
+      // Insight LPR
+      if (lower.startsWith('insight')) return 'Insight LPR';
+
+      // Mobotix (typo: mobitix)
+      if (lower.startsWith('mob')) return 'Mobotix';
+
+      // Hanwha Vision
+      if (lower.startsWith('hanwha')) return 'Hanwha Vision';
+
+      // Cyber Secure (typos: yber secure)
+      if (lower.includes('cyber') || lower.startsWith('yber')) return 'Cyber Secure';
+
+      // Hikvision
+      if (lower.startsWith('hikvision')) return 'Hikvision';
+
+      // Dahua
+      if (lower.startsWith('dahua')) return 'Dahua';
+
+      // Redspeed
+      if (lower.startsWith('redspeed')) return 'Redspeed';
+
+      // Other known smaller brands
+      if (lower.startsWith('mesa')) return 'Mesa Technologies';
+      if (lower.startsWith('icamera')) return 'ICamera';
+      if (lower.startsWith('epic')) return 'EPIC IO';
+      if (lower.startsWith('transcore')) return 'TransCore';
+      if (lower.startsWith('platesmart')) return 'PlateSmart';
+      if (lower.startsWith('adaptive')) return 'Adaptive Recognition';
+      if (lower.startsWith('ndi')) return 'NDI Recognition Systems';
+      if (lower.startsWith('mav')) return 'Mav Systems';
+      if (lower.startsWith('jenoptik')) return 'Jenoptik';
+      if (lower.startsWith('uniview') || lower === 'unv') return 'Uniview';
+      if (lower.startsWith('platelogiq')) return 'PlateLogiq';
+
+      // Anything else not recognized → keep as-is (will land in "Other" if not top 3)
+      return raw.trim();
+    };
+
+    // Aggregate brands (null from normalization = unknown)
     const brandCounts = new Map<string, number>();
+    let unbrandedCount = 0;
     for (const cam of inView) {
       if (cam.brand) {
-        brandCounts.set(cam.brand, (brandCounts.get(cam.brand) ?? 0) + 1);
+        const normalized = normalizeBrand(cam.brand);
+        if (normalized) {
+          brandCounts.set(normalized, (brandCounts.get(normalized) ?? 0) + 1);
+        } else {
+          unbrandedCount++;
+        }
+      } else {
+        unbrandedCount++;
       }
     }
 
     const uniqueBrands = brandCounts.size;
 
-    // Sort descending, take top 4, group rest as "Other"
+    // Sort descending, top 3 named brands + Other + Unknown = max 5 rows
     const sorted = Array.from(brandCounts.entries()).sort((a, b) => b[1] - a[1]);
     const brands: { name: string; count: number }[] = [];
     let otherCount = 0;
 
     for (let i = 0; i < sorted.length; i++) {
-      if (i < 4) {
+      if (i < 3) {
         brands.push({ name: sorted[i][0], count: sorted[i][1] });
       } else {
         otherCount += sorted[i][1];
@@ -439,11 +539,14 @@ export function MapPanelContent() {
     if (otherCount > 0) {
       brands.push({ name: 'Other', count: otherCount });
     }
+    if (unbrandedCount > 0) {
+      brands.push({ name: 'Unknown', count: unbrandedCount });
+    }
 
-    return { count: inView.length, uniqueBrands, brands };
-  }, [bounds, getCamerasInBounds]);
+    return { count: inView.length, uniqueBrands, brands: brands.slice(0, 5) };
+  }, [bounds, filteredCameras]);
 
-  const maxBrandCount = viewportStats.brands[0]?.count ?? 1;
+  const totalInView = viewportStats.count || 1;
 
   return (
     <div className="flex flex-col">
@@ -476,12 +579,12 @@ export function MapPanelContent() {
           <div className="space-y-2">
             {viewportStats.brands.map((brand, i) => {
               const color = BRAND_COLORS[Math.min(i, BRAND_COLORS.length - 1)];
-              const widthPct = Math.max((brand.count / maxBrandCount) * 100, 2);
+              const widthPct = Math.max((brand.count / totalInView) * 100, 2);
               return (
                 <div key={brand.name}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-dark-200">{brand.name}</span>
-                    <span className="text-xs text-dark-500 tabular-nums">
+                    <span className="text-sm font-medium text-white tabular-nums">
                       {brand.count.toLocaleString()}
                     </span>
                   </div>
