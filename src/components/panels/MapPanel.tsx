@@ -29,6 +29,14 @@ const CAMERA_VIEW_OPTIONS: { id: MapVisualization; label: string; description: s
   { id: 'individual', label: 'Individual', description: 'All camera points' },
 ];
 
+const BRAND_COLORS = [
+  { from: '#38bdf8', to: '#0ea5e9' },
+  { from: '#a78bfa', to: '#8b5cf6' },
+  { from: '#f472b6', to: '#ec4899' },
+  { from: '#fbbf24', to: '#f59e0b' },
+  { from: '#94a3b8', to: '#64748b' },
+];
+
 // ─── Collapsible Section (top-level) ────────────────────────────────────────
 function Section({
   title,
@@ -440,10 +448,66 @@ export function MapPanelContent() {
   }, [bounds, getCamerasInBounds]);
 
   const maxBrandCount = viewportStats.brands[0]?.count ?? 1;
-  void maxBrandCount; // consumed by next task
 
   return (
     <div className="flex flex-col">
+      {/* Hero: Cameras in View */}
+      <div className="px-6 pt-4 pb-3">
+        <div className="bg-gradient-to-br from-accent/10 to-accent/[0.03] border border-accent/15 rounded-xl px-5 py-4 text-center">
+          <div className="flex items-baseline justify-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_rgba(56,189,248,0.5)] flex-shrink-0 relative -top-0.5" />
+            <span className="text-[40px] font-bold text-accent tracking-tight leading-none tabular-nums">
+              {viewportStats.count.toLocaleString()}
+            </span>
+          </div>
+          <p className="text-[11px] text-dark-500 uppercase tracking-[1.5px] mt-1">
+            cameras in view
+          </p>
+        </div>
+      </div>
+
+      {/* Brands in View */}
+      {viewportStats.brands.length > 0 && (
+        <div className="px-6 pb-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[10px] font-semibold text-dark-500 uppercase tracking-[0.08em]">
+              Brands in View
+            </span>
+            <span className="text-[10px] text-dark-500">
+              {viewportStats.uniqueBrands} brand{viewportStats.uniqueBrands !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {viewportStats.brands.map((brand, i) => {
+              const color = BRAND_COLORS[Math.min(i, BRAND_COLORS.length - 1)];
+              const widthPct = Math.max((brand.count / maxBrandCount) * 100, 2);
+              return (
+                <div key={brand.name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-dark-200">{brand.name}</span>
+                    <span className="text-xs text-dark-500 tabular-nums">
+                      {brand.count.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-dark-800 rounded-full">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${widthPct}%`,
+                        background: `linear-gradient(90deg, ${color.from}, ${color.to})`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Divider before sections */}
+      <div className="h-px bg-dark-700/50 mx-6" />
+
       {/* Section: Layers */}
       <Section title="Layers">
         <CameraViewSelector
