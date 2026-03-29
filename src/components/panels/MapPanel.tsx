@@ -357,8 +357,6 @@ function CheckboxGroup({
 
 // ─── MapPanelContent ────────────────────────────────────────────────────────
 export function MapPanelContent() {
-  const cameras = useCameraStore((s) => s.cameras);
-  const filteredCameras = useCameraStore((s) => s.filteredCameras);
   const filters = useCameraStore((s) => s.filters);
   const availableBrands = useCameraStore((s) => s.availableBrands);
   const availableOperators = useCameraStore((s) => s.availableOperators);
@@ -406,8 +404,6 @@ export function MapPanelContent() {
     filters.operators.length +
     filters.surveillanceZones.length +
     filters.mountTypes.length;
-
-  const hasActiveFilters = appliedFilterCount > 0;
 
   // Viewport-reactive stats
   const { bounds } = useMapStore();
@@ -602,17 +598,6 @@ export function MapPanelContent() {
         </Section>
       )}
 
-      {/* Footer */}
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between text-sm text-dark-400">
-          <span>Cameras shown</span>
-          <span className="text-dark-300 font-medium">
-            {hasActiveFilters
-              ? `${filteredCameras.length.toLocaleString()} / ${cameras.length.toLocaleString()}`
-              : cameras.length.toLocaleString()}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
