@@ -1,6 +1,7 @@
 const ALLOWED_ORIGINS = [
   'https://dontgetflocked.com',
   'https://www.dontgetflocked.com',
+  'https://deflock-maps.flockhopper.workers.dev',
   'http://localhost:3000',
 ];
 
