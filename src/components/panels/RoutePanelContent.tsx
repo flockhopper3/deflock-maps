@@ -45,7 +45,7 @@ export function RoutePanelContent({ onExpandSheet, onCollapseSheet, isBottomShee
     cancelPickingLocation,
   } = useRouteStore();
 
-  const { flyTo } = useMapStore();
+  const flyTo = useMapStore(s => s.flyTo);
 
   // Wrapper to set origin and zoom to it
   const handleSetOrigin = (location: Location | null) => {
@@ -105,7 +105,7 @@ export function RoutePanelContent({ onExpandSheet, onCollapseSheet, isBottomShee
           {!hasRoutes && (
             <div className="space-y-3">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest">
+                <p className="text-sm font-semibold text-accent uppercase tracking-widest">
                   Are you being tracked?
                 </p>
                 <h2 className="text-3xl font-display font-bold text-white">

@@ -407,7 +407,7 @@ export function MapPanelContent() {
     filters.mountTypes.length;
 
   // Viewport-reactive stats (respects active filters)
-  const { bounds } = useMapStore();
+  const bounds = useMapStore(s => s.bounds);
   const filteredCameras = useCameraStore((s) => s.filteredCameras);
 
   const viewportStats = useMemo(() => {

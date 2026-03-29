@@ -1,7 +1,7 @@
 import { useMapStore, useCameraStore } from '../../store';
 
 export function CameraStats() {
-  const { bounds } = useMapStore();
+  const bounds = useMapStore(s => s.bounds);
   const getCamerasInBounds = useCameraStore(s => s.getCamerasInBounds);
   const cameraCount = useCameraStore(s => s.cameras.length);
   const isLoading = useCameraStore(s => s.isLoading);

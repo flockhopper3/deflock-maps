@@ -60,7 +60,7 @@ export function MapSearch() {
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   
-  const { flyTo } = useMapStore();
+  const flyTo = useMapStore(s => s.flyTo);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

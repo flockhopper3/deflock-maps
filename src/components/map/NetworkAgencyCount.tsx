@@ -7,7 +7,7 @@ export function NetworkAgencyCount() {
   const typeFilter = useNetworkStore(s => s.typeFilter);
   const portalOnly = useNetworkStore(s => s.portalOnly);
   const loadPhase = useNetworkStore(s => s.loadPhase);
-  const { bounds } = useMapStore();
+  const bounds = useMapStore(s => s.bounds);
 
   const count = useMemo(() => {
     if (!bounds) return 0;

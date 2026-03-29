@@ -9,7 +9,9 @@ export function ExploreTab() {
   const [isOpen, setIsOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState<GeocodingResult[]>([]);
   
-  const { flyTo, zoom, center } = useMapStore();
+  const flyTo = useMapStore(s => s.flyTo);
+  const zoom = useMapStore(s => s.zoom);
+  const center = useMapStore(s => s.center);
   const { getCamerasInBounds, cameras } = useCameraStore();
   
   const inputRef = useRef<HTMLInputElement>(null);

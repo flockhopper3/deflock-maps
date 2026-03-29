@@ -24,6 +24,8 @@ interface MapStoreState extends MapState {
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
   setBounds: (bounds: MapBounds | null) => void;
+  /** Batch center + zoom + bounds in a single store update (used by onMove) */
+  setViewState: (center: [number, number], zoom: number, bounds: MapBounds) => void;
   setIsInteracting: (isInteracting: boolean) => void;
   setSelectedCamera: (osmId: number | null) => void;
   toggleCameraLayer: () => void;
@@ -60,6 +62,10 @@ export const useMapStore = create<MapStoreState>((set) => ({
 
   setBounds: (bounds: MapBounds | null) => {
     set({ bounds });
+  },
+
+  setViewState: (center, zoom, bounds) => {
+    set({ center, zoom, bounds });
   },
 
   setIsInteracting: (isInteracting: boolean) => {

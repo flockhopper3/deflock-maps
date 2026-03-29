@@ -37,27 +37,9 @@ export function MobileRoutePreview({ hasRoutes, onExpand }: MobileRoutePreviewPr
     );
   }
 
-  // No routes yet - prompt to enter destination
+  // No routes yet - nothing to preview
   if (!hasRoutes || !normalRoute || !avoidanceRoute || !comparison) {
-    return (
-      <button
-        onClick={onExpand}
-        className="w-full flex items-center justify-between py-1"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-danger/10 border border-danger/30 flex items-center justify-center p-1.5">
-            <img src="/favicon.png" alt="FlockHopper" className="w-full h-full object-contain" />
-          </div>
-          <div className="text-left">
-            <p className="text-sm font-semibold text-white">Plan Your Route</p>
-            <p className="text-xs text-dark-400">Enter start & destination</p>
-          </div>
-        </div>
-        <svg className="w-5 h-5 text-dark-400" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
-        </svg>
-      </button>
-    );
+    return null;
   }
 
   // Show route comparison summary

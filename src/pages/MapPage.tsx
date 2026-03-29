@@ -36,7 +36,7 @@ export function MapPage() {
     getCamerasInBounds,
     loadPhase,
   } = useCameraStore();
-  const { bounds } = useMapStore();
+  const bounds = useMapStore(s => s.bounds);
   const appMode = useAppModeStore(s => s.appMode);
   const setAppMode = useAppModeStore(s => s.setAppMode);
   const updateTimelineSettings = useAppModeStore(s => s.updateTimelineSettings);
@@ -268,7 +268,7 @@ export function MapPage() {
                   alt="DeFlock Logo"
                   className="h-7 lg:h-8 w-auto object-contain transition-opacity duration-150 group-hover:opacity-80"
                 />
-                <span className="text-dark-400 text-xs tracking-widest uppercase hidden sm:inline">Maps</span>
+                <span className="text-dark-400 text-[11px] font-medium tracking-[0.2em] uppercase hidden sm:inline self-end mb-[3px]">Maps</span>
               </a>
 
               {/* Desktop: Mode tabs - editorial underline style */}
@@ -277,10 +277,10 @@ export function MapPage() {
                   <button
                     key={mode}
                     onClick={() => handleSetAppMode(mode)}
-                    className={`relative text-xs uppercase tracking-widest pb-1 transition-colors duration-150 ${
+                    className={`relative text-sm font-medium uppercase tracking-widest pb-1 transition-colors duration-150 ${
                       appMode === mode
                         ? 'text-accent'
-                        : 'text-dark-400 hover:text-dark-200'
+                        : 'text-dark-200 hover:text-white'
                     }`}
                     aria-current={appMode === mode ? 'page' : undefined}
                   >
