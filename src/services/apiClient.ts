@@ -6,20 +6,10 @@ import type {
   POIMetrics,
 } from '../types';
 
-const DEFAULT_API_URL = 'https://api.dontgetflocked.com';
+const API_URL = 'https://api.dontgetflocked.com';
 
 function getApiUrl(): string {
-  const url = import.meta.env.VITE_API_URL;
-  if (!url) {
-    if (import.meta.env.DEV) {
-      console.warn(
-        'VITE_API_URL is not set — falling back to',
-        DEFAULT_API_URL
-      );
-    }
-    return DEFAULT_API_URL;
-  }
-  return url;
+  return API_URL;
 }
 
 export interface CalculateRouteOptions {

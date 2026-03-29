@@ -34,7 +34,7 @@ export interface MapLibreViewHandle {
 
 import { layers as pmLayers, namedFlavor } from '@protomaps/basemaps';
 
-const TILES_URL = import.meta.env.VITE_TILES_URL || 'https://tiles.dontgetflocked.com';
+const TILES_URL = 'https://tiles.dontgetflocked.com';
 
 // Map our style IDs to Protomaps flavor names (must match R2 sprites at /sprites/v4/{flavor})
 const FLAVOR_MAP: Record<MapTileStyleId, string> = {
@@ -139,7 +139,13 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
   const watchdogRetryCount = useRef(0);
   const [, forceUpdate] = useState(0);
   
-  const { center, zoom, showCameraLayer, setCenter, setZoom, setBounds, flyToCommand, clearFlyToCommand } = useMapStore();
+  // Use selectors to avoid re-rendering on unrelated store changes
+  const center = useMapStore(s => s.center);
+  const zoom = useMapStore(s => s.zoom);
+  const showCameraLayer = useMapStore(s => s.showCameraLayer);
+  const flyToCommand = useMapStore(s => s.flyToCommand);
+  // Actions are stable references — safe to grab once
+  const { setViewState, setBounds, clearFlyToCommand } = useMapStore.getState();
   const filteredCameras = useCameraStore(s => s.filteredCameras);
   const cameras = useCameraStore(s => s.cameras);
   const getCamerasInBounds = useCameraStore(s => s.getCamerasInBounds);
@@ -523,25 +529,25 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
 
 
 
-  // Handle map move - update center, zoom, and bounds
+  // Handle map move - batch center, zoom, and bounds in a single store update
   const onMove = useCallback((evt: ViewStateChangeEvent) => {
-    setCenter([evt.viewState.latitude, evt.viewState.longitude]);
-    setZoom(evt.viewState.zoom);
-    
-    // Update bounds on every move for accurate camera count
     if (mapRef.current) {
       const map = mapRef.current.getMap();
       const bounds = map.getBounds();
-      setBounds({
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest(),
-      });
+      setViewState(
+        [evt.viewState.latitude, evt.viewState.longitude],
+        evt.viewState.zoom,
+        {
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        },
+      );
     }
-    
+
     updateVisibleCameras();
-  }, [setCenter, setZoom, setBounds, updateVisibleCameras]);
+  }, [setViewState, updateVisibleCameras]);
 
   // Handle map load
   const onLoad = useCallback(() => {

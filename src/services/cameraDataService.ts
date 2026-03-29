@@ -56,8 +56,7 @@ export async function loadBundledCameras(): Promise<ALPRCamera[]> {
       
       try {
         // Fetch from data Worker — browser handles gzip decompression automatically
-        const dataApiUrl = import.meta.env.VITE_DATA_API_URL || '';
-        const response = await fetch(`${dataApiUrl}/cameras.geojson.gz`, {
+        const response = await fetch('https://data.dontgetflocked.com/cameras.geojson.gz', {
           headers: {
             'Accept': 'application/geo+json, application/json',
           },
