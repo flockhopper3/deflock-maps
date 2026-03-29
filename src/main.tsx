@@ -37,11 +37,18 @@ function PageLoader() {
       </header>
       <div className="flex-1 flex items-center justify-center relative">
         <div className="relative z-10 flex flex-col items-center gap-6">
-          <img
-            src="/deflock-logo.svg"
-            alt="Loading"
-            className="h-16 lg:h-20 w-auto object-contain"
-          />
+          <div className="flex items-center gap-3">
+            <img
+              src="/deflock-icon.png"
+              alt="DeFlock Icon"
+              className="h-16 lg:h-20 w-auto object-contain"
+            />
+            <img
+              src="/deflock-logo.svg"
+              alt="Loading"
+              className="h-16 lg:h-20 w-auto object-contain"
+            />
+          </div>
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-3 border-dark-700 border-t-blue-400 rounded-full animate-spin" />
             <span className="text-dark-400 text-sm font-display">Loading...</span>

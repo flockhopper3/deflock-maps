@@ -167,15 +167,17 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
   const isHeatmapMode = isExploreMode && mapVisualization === 'heatmap';
   const isDotsMode = isExploreMode && mapVisualization === 'dots';
   // Only render camera markers + direction cones when needed.
-  // In map mode, markers are always visible — zoom-based crossfade opacity handles the
-  // transition so both heatmap and markers can be mounted simultaneously without blink.
+  // In map-mode auto, both heatmap & markers are mounted — crossfade opacity handles
+  // the transition seamlessly. For explicit heatmap/clusters/individual selections,
+  // only the chosen layer is shown so they never overlap.
   // In explore mode, auto-show markers when zoomed past 13 (heatmap crossfades out 13-14),
   // or when the user explicitly toggles "Show Markers" at any zoom.
   // In density mode, hide camera markers entirely to keep choropleth clean.
   const isMapModeAuto = isMapMode && mapModeViz === 'auto';
   const showCameraMarkers = !isNetworkMode && !isDensityMode && (
     appMode === 'route'
-    || isMapMode
+    || isMapModeAuto
+    || (isMapMode && activeView !== 'heatmap')
     || (isHeatmapMode && (heatmapSettings.showMarkers || zoom >= 13))
     || (isDotsMode && (dotDensitySettings.showMarkers || zoom >= 13))
   );
@@ -943,7 +945,7 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
 
       {/* Explore visualization layers */}
       {isHeatmapMode && <HeatmapLayers />}
-      {isMapMode && <HeatmapLayers />}
+      {isMapMode && (mapModeViz === 'auto' || activeView === 'heatmap') && <HeatmapLayers />}
       {isDotsMode && <DotDensityLayers />}
       {isDensityMode && <DensityLayers />}
       {isNetworkMode && <NetworkLayers />}

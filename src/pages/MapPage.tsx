@@ -264,6 +264,11 @@ export function MapPage() {
               {/* Logo */}
               <a href="https://deflock.org" className="flex items-center gap-2 group flex-shrink-0">
                 <img
+                  src="/deflock-icon.png"
+                  alt="DeFlock Icon"
+                  className="h-7 lg:h-8 w-auto object-contain transition-opacity duration-150 group-hover:opacity-80"
+                />
+                <img
                   src="/deflock-logo.svg"
                   alt="DeFlock Logo"
                   className="h-7 lg:h-8 w-auto object-contain transition-opacity duration-150 group-hover:opacity-80"

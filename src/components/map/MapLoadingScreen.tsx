@@ -74,7 +74,12 @@ export function MapLoadingScreen({
         <div className="w-full px-3 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
             {/* Logo */}
-            <a href="https://deflock.org" className="flex items-center group">
+            <a href="https://deflock.org" className="flex items-center gap-2 group">
+              <img
+                src="/deflock-icon.png"
+                alt="DeFlock Icon"
+                className="h-8 lg:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-110"
+              />
               <img
                 src="/deflock-logo.svg"
                 alt="DeFlock Logo"
@@ -118,11 +123,18 @@ export function MapLoadingScreen({
         {error ? (
           // Error state
           <div className="relative z-10 flex flex-col items-center gap-6 px-6 max-w-md text-center">
-            <img 
-              src="/deflock-logo.svg" 
-              alt="DeFlock"
-              className="h-16 lg:h-20 w-auto object-contain opacity-50"
-            />
+            <div className="flex items-center gap-3 opacity-50">
+              <img
+                src="/deflock-icon.png"
+                alt="DeFlock Icon"
+                className="h-16 lg:h-20 w-auto object-contain"
+              />
+              <img
+                src="/deflock-logo.svg"
+                alt="DeFlock"
+                className="h-16 lg:h-20 w-auto object-contain"
+              />
+            </div>
             <div>
               <h2 className="text-xl font-display font-bold text-white mb-2">
                 Failed to Load Camera Data
@@ -142,11 +154,18 @@ export function MapLoadingScreen({
           // Loading state
           <div className="relative z-10 flex flex-col items-center gap-8 px-6">
             {/* Logo */}
-            <img 
-              src="/deflock-logo.svg" 
-              alt="DeFlock"
-              className="h-20 lg:h-24 w-auto object-contain"
-            />
+            <div className="flex items-center gap-3">
+              <img
+                src="/deflock-icon.png"
+                alt="DeFlock Icon"
+                className="h-20 lg:h-24 w-auto object-contain"
+              />
+              <img
+                src="/deflock-logo.svg"
+                alt="DeFlock"
+                className="h-20 lg:h-24 w-auto object-contain"
+              />
+            </div>
 
             {/* Loading spinner and text */}
             <div className="flex flex-col items-center gap-3">
