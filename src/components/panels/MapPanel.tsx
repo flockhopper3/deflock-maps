@@ -666,7 +666,7 @@ export function MapPanel() {
               </div>
               <div className="text-left">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-white">Map</p>
+                  <p className="text-sm font-semibold text-white">DeFlock Maps</p>
                   {activeFilterCount > 0 && (
                     <span className="px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-xs font-semibold">
                       {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}
@@ -705,9 +705,9 @@ export function MapPanel() {
       >
         {/* Header */}
         <div className="flex-shrink-0 px-6 py-5 border-b border-dark-700/50">
-          <h2 className="text-lg font-display font-semibold text-white mb-1">Map</h2>
+          <h2 className="text-lg font-display font-semibold text-white mb-1">DeFlock Maps</h2>
           <p className="text-xs text-dark-400 leading-relaxed">
-            Browse and filter ALPR cameras. Data from{' '}
+            Crowdsourced ALPR surveillance map. Data from{' '}
             <a
               href="https://deflock.me"
               target="_blank"
@@ -738,10 +738,8 @@ export function MapPanel() {
         <div className="flex-shrink-0 px-6 py-4 border-t border-dark-700/50 bg-dark-800/50">
           <div className="flex items-center justify-between text-sm text-dark-400">
             <span>Data from OpenStreetMap</span>
-            <span className="text-dark-300 font-medium">
-              {filteredCount === cameraCount
-                ? `${cameraCount.toLocaleString()} cameras`
-                : `${filteredCount.toLocaleString()} / ${cameraCount.toLocaleString()}`}
+            <span className="text-dark-300 font-medium tabular-nums">
+              {cameraCount.toLocaleString()} total US
             </span>
           </div>
         </div>
