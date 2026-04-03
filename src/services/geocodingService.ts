@@ -225,35 +225,6 @@ function locationIQToResult(result: LocationIQResult): GeocodingResult {
   };
 }
 
-/**
- * Reverse geocode using LocationIQ
- */
-async function reverseGeocodeLocationIQ(lat: number, lon: number): Promise<GeocodingResult | null> {
-  try {
-    // Apply rate limiting
-    await waitForLocationIQRateLimit();
-    
-    const params = new URLSearchParams({
-      key: LOCATIONIQ_KEY,
-      lat: lat.toString(),
-      lon: lon.toString(),
-      format: 'json',
-      addressdetails: '1',
-    });
-
-    const response = await fetch(`${LOCATIONIQ_API}/reverse?${params}`);
-    
-    if (!response.ok) {
-      return null;
-    }
-
-    const data: LocationIQResult = await response.json();
-    return locationIQToResult(data);
-  } catch {
-    return null;
-  }
-}
-
 // ============================================================================
 // COORDINATE DETECTION
 // ============================================================================
@@ -520,49 +491,6 @@ async function searchNominatim(query: string, signal?: AbortSignal): Promise<Geo
 }
 
 // ============================================================================
-// REVERSE GEOCODING
-// ============================================================================
-
-/**
- * Get address from coordinates (tries LocationIQ first, falls back to Photon)
- */
-export async function reverseGeocode(lat: number, lon: number): Promise<GeocodingResult | null> {
-  // Try LocationIQ first for better accuracy
-  try {
-    const result = await reverseGeocodeLocationIQ(lat, lon);
-    if (result) return result;
-  } catch {
-    // Fall through to Photon
-  }
-  
-  // Fallback to Photon
-  try {
-    const params = new URLSearchParams({
-      lat: lat.toString(),
-      lon: lon.toString(),
-      limit: '1',
-      lang: 'en',
-    });
-
-    const response = await fetch(`${PHOTON_API}/reverse?${params}`);
-    
-    if (!response.ok) {
-      return null;
-    }
-
-    const data: PhotonResponse = await response.json();
-    
-    if (data.features.length === 0) {
-      return null;
-    }
-
-    return photonToResult(data.features[0]);
-  } catch {
-    return null;
-  }
-}
-
-// ============================================================================
 // FALLBACK CHAIN
 // ============================================================================
 
@@ -619,17 +547,15 @@ export async function smartSearch(query: string, signal?: AbortSignal): Promise<
     return [];
   }
 
-  // Check for GPS coordinates first
+  // Check for GPS coordinates first — return directly, no reverse lookup needed
   const coords = parseCoordinates(trimmed);
   if (coords) {
-    const reverseResult = await reverseGeocode(coords.lat, coords.lon);
-    
     return [{
       id: `coords-${coords.lat}-${coords.lon}`,
       lat: coords.lat,
       lon: coords.lon,
       name: `${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)}`,
-      description: reverseResult?.description || 'GPS Coordinates',
+      description: 'GPS Coordinates',
       type: 'coordinates',
     }];
   }

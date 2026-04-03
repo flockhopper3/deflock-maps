@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { smartSearch, reverseGeocode, toLocation, type GeocodingResult } from '../../services/geocodingService';
+import { smartSearch, toLocation, type GeocodingResult } from '../../services/geocodingService';
 import type { Location } from '../../types';
 
 interface AddressSearchProps {
@@ -110,20 +110,8 @@ export function AddressSearch({
 
       const { latitude: lat, longitude: lon } = position.coords;
 
-      // Try to reverse geocode for a friendly name
-      let locationName = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-      let locationAddress = 'Current Location';
-
-      try {
-        const reverseResult = await reverseGeocode(lat, lon);
-        if (reverseResult) {
-          locationName = reverseResult.name || locationName;
-          locationAddress = reverseResult.description || locationAddress;
-        }
-      } catch {
-        // If reverse geocoding fails, we still have coordinates
-        console.warn('Reverse geocoding failed, using raw coordinates');
-      }
+      const locationName = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      const locationAddress = 'Current Location';
 
       // Create the location object
       const location: Location = {

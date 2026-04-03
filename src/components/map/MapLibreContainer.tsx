@@ -23,7 +23,6 @@ import { BoundaryOverlayLayers } from './layers/BoundaryOverlayLayers';
 import { useDensityStore } from '../../store/densityStore';
 import type { DensityFeatureProperties } from '../../types';
 
-import { reverseGeocode } from '../../services/geocodingService';
 import type { ALPRCamera, Location } from '../../types';
 
 // Expose map ready state to parent components
@@ -641,36 +640,6 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
       
       // Set the location immediately for responsiveness
       setPickedLocation(location);
-      
-      // Try to reverse geocode for a better name (async, won't block)
-      try {
-        const reverseResult = await reverseGeocode(lat, lng);
-        if (reverseResult) {
-          location = {
-            lat,
-            lon: lng,
-            name: reverseResult.name || location.name,
-            address: reverseResult.description || location.address,
-          };
-          // Update with better name - need to call setOrigin/setDestination directly
-          // since pickingLocation is already cleared
-          const { setOrigin, setDestination } = useRouteStore.getState();
-          // Check what was the original picking mode by looking at current state
-          // Actually, pickingLocation is cleared now, so we need to track it
-          // For now, update both to trigger re-render with better name
-          const state = useRouteStore.getState();
-          if (state.origin?.lat === lat && state.origin?.lon === lng) {
-            setOrigin(location);
-          } else if (state.destination?.lat === lat && state.destination?.lon === lng) {
-            setDestination(location);
-          }
-        }
-      } catch (error) {
-        // Location was already set with coordinates, just log in dev mode
-        if (import.meta.env.DEV) {
-          console.warn('[MapLibre] Reverse geocoding failed:', error);
-        }
-      }
       return;
     }
 
@@ -945,7 +914,7 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
 
       {/* Explore visualization layers */}
       {isHeatmapMode && <HeatmapLayers />}
-      {isMapMode && (mapModeViz === 'auto' || activeView === 'heatmap') && <HeatmapLayers />}
+      {isMapMode && <HeatmapLayers visible={mapModeViz === 'auto' || activeView === 'heatmap'} />}
       {isDotsMode && <DotDensityLayers />}
       {isDensityMode && <DensityLayers />}
       {isNetworkMode && <NetworkLayers />}

@@ -11,7 +11,7 @@ export {
 export * from './apiClient';
 
 // Geocoding - Photon + LocationIQ based service (preferred)
-export { smartSearch, reverseGeocode, toLocation, getResultTypeIcon } from './geocodingService';
+export { smartSearch, toLocation, getResultTypeIcon } from './geocodingService';
 export type { GeocodingResult } from './geocodingService';
 
 // ZIP Code lookup - Local bundled data (instant, no API)
