@@ -103,14 +103,20 @@ export function RoutePanelContent({ onExpandSheet, onCollapseSheet, isBottomShee
     <div className="space-y-6">
           {/* Intro (when no routes) */}
           {!hasRoutes && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-accent uppercase tracking-widest">
-                  Are you being tracked?
+            <div className="space-y-4">
+              <div>
+                <img src="/FlockHopper-2.png" alt="FlockHopper" className="h-14 w-auto" />
+                <p className="text-xs text-dark-400 mt-2">
+                  Powered by{' '}
+                  <a
+                    href="https://dontgetflocked.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-hover font-medium transition-colors"
+                  >
+                    dontgetflocked.com
+                  </a>
                 </p>
-                <h2 className="text-3xl font-display font-bold text-white">
-                  Check Your Route
-                </h2>
               </div>
               <p className="text-sm text-gray-200 leading-relaxed">
                 Enter your starting point and destination to analyze ALPR camera exposure along your route and discover safer alternatives.
