@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { LegacyMapLink } from './LegacyMapLink';
 
 interface Props {
   children: ReactNode;
@@ -80,6 +81,7 @@ export class ErrorBoundary extends Component<Props, State> {
               >
                 Go Home
               </button>
+              <LegacyMapLink variant="button" />
             </div>
           </div>
         </div>
