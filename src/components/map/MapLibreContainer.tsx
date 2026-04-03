@@ -1135,12 +1135,6 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
             </div>
           </div>
 
-          {/* Center crosshair */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className={`w-10 h-10 rounded-full border-2 border-dashed animate-pulse ${
-              pickingLocation === 'origin' ? 'border-success' : 'border-danger'
-            }`} />
-          </div>
         </div>
       )}
       
