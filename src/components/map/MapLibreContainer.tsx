@@ -631,7 +631,7 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
       const { lng, lat } = event.lngLat;
       
       // Create location with coordinates first
-      let location: Location = {
+      const location: Location = {
         lat,
         lon: lng,
         name: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
@@ -914,7 +914,7 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
 
       {/* Explore visualization layers */}
       {isHeatmapMode && <HeatmapLayers />}
-      {isMapMode && <HeatmapLayers visible={mapModeViz === 'auto' || activeView === 'heatmap'} />}
+      {isMapMode && (mapModeViz === 'auto' || activeView === 'heatmap') && <HeatmapLayers />}
       {isDotsMode && <DotDensityLayers />}
       {isDensityMode && <DensityLayers />}
       {isNetworkMode && <NetworkLayers />}
