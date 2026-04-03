@@ -491,7 +491,7 @@ function nominatimToResult(result: NominatimResult): GeocodingResult {
 /**
  * Search using Nominatim geocoder (OSM's official geocoder, 1 req/sec limit)
  */
-export async function searchNominatim(query: string, signal?: AbortSignal): Promise<GeocodingResult[]> {
+async function searchNominatim(query: string, signal?: AbortSignal): Promise<GeocodingResult[]> {
   await waitForNominatimRateLimit();
 
   const params = new URLSearchParams({
@@ -563,6 +563,44 @@ export async function reverseGeocode(lat: number, lon: number): Promise<Geocodin
 }
 
 // ============================================================================
+// FALLBACK CHAIN
+// ============================================================================
+
+type GeocodingProvider = (query: string, signal?: AbortSignal) => Promise<GeocodingResult[]>;
+
+/**
+ * Search through providers in order: LocationIQ (1.8 req/sec) → Nominatim (1 req/sec) → Photon (no limit).
+ * Falls through to the next provider on failure or empty results.
+ */
+async function searchWithFallback(query: string, signal?: AbortSignal): Promise<GeocodingResult[]> {
+  const providers: { name: string; search: GeocodingProvider }[] = [
+    { name: 'LocationIQ', search: searchLocationIQ },
+    { name: 'Nominatim', search: searchNominatim },
+    { name: 'Photon', search: searchPhoton },
+  ];
+
+  for (const provider of providers) {
+    try {
+      const results = await provider.search(query, signal);
+      if (results.length > 0) {
+        return results;
+      }
+      // Empty results — try next provider
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return [];
+      }
+      // Log and fall through to next provider
+      if (import.meta.env.DEV) {
+        console.warn(`[Geocoding] ${provider.name} failed, trying next provider:`, error);
+      }
+    }
+  }
+
+  return [];
+}
+
+// ============================================================================
 // MAIN SEARCH FUNCTION
 // ============================================================================
 
@@ -616,56 +654,12 @@ export async function smartSearch(query: string, signal?: AbortSignal): Promise<
       console.warn('Local ZIP lookup failed, falling back to API');
     }
     
-    // Fall back to LocationIQ for ZIP lookup
-    try {
-      const results = await searchLocationIQ(`${trimmed}, USA`, signal);
-      if (results.length > 0) return results;
-    } catch (error) {
-      // Log LocationIQ failure before falling through to Photon
-      if (import.meta.env.DEV) {
-        console.warn('[Geocoding] LocationIQ ZIP lookup failed, falling back to Photon:', error);
-      }
-    }
-    
-    // Final fallback to Photon
-    try {
-      const results = await searchPhoton(`${trimmed}, USA`, signal);
-      return results;
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return [];
-      }
-      throw error;
-    }
+    // Fall back to API providers for ZIP lookup
+    return searchWithFallback(`${trimmed}, USA`, signal);
   }
 
-  // Search with LocationIQ first (best for addresses), fallback to Photon
-  try {
-    const results = await searchLocationIQ(trimmed, signal);
-    if (results.length > 0) {
-      return results;
-    }
-  } catch (error) {
-    // If aborted, return immediately
-    if (error instanceof Error && error.name === 'AbortError') {
-      return [];
-    }
-    // Otherwise, log and fall through to Photon
-    console.warn('LocationIQ search failed, falling back to Photon:', error);
-  }
-
-  // Fallback to Photon for addresses, cities, POIs, etc.
-  try {
-    const results = await searchPhoton(trimmed, signal);
-    return results;
-  } catch (error) {
-    // If aborted, don't log
-    if (error instanceof Error && error.name === 'AbortError') {
-      return [];
-    }
-    console.error('Geocoding search error:', error);
-    throw error;
-  }
+  // Search with 3-tier fallback: LocationIQ → Nominatim → Photon
+  return searchWithFallback(trimmed, signal);
 }
 
 // ============================================================================
