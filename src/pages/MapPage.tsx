@@ -236,26 +236,21 @@ export function MapPage() {
     />
   );
 
-  // Show loading screen until cameras are ready OR if there's an error
-  // But we need to mount the map (hidden) so it can start loading
-  if (!camerasReady || error) {
-    return (
-      <>
-        {seo}
+  return (
+    <>
+      {seo}
+      {/* Unified loading overlay — map renders underneath so tiles load in parallel */}
+      {(!isFullyReady || error) && (
         <MapLoadingScreen
           cameraProgress={cameraProgress}
           cameraCount={cameras.length}
           error={error}
           onRetry={handleRetryWithRemount}
           watchdogWarning={watchdogWarning}
+          markersReady={markersReady}
+          camerasReady={camerasReady}
         />
-      </>
-    );
-  }
-
-  return (
-    <>
-      {seo}
+      )}
       <div className={`map-page h-screen w-screen flex flex-col bg-dark-900 overflow-hidden ${isExploreMode ? 'timeline-active' : ''}`}>
         {/* Header - Persistent on Map View */}
         <header className="h-12 bg-dark-900 border-b border-dark-600 flex items-center z-50 shrink-0">
@@ -372,24 +367,6 @@ export function MapPage() {
               mapKey={mapKey}
               onMarkersReady={handleMarkersReady}
             />
-
-            {/* Show loading overlay while markers are initializing */}
-            {!isFullyReady && (
-              <div className="absolute inset-0 z-30 bg-dark-900/80 backdrop-blur-sm flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-10 h-10 border-3 border-dark-600 border-t-blue-400 rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-sm text-dark-300">Preparing map...</p>
-                  {watchdogWarning && (
-                    <button
-                      onClick={handleRetryWithRemount}
-                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      Retry
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Map Overlays */}
             <MapSearch />

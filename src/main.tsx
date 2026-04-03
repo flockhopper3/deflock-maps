@@ -27,31 +27,31 @@ const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.N
 function PageLoader() {
   return (
     <div className="h-screen w-screen flex flex-col bg-dark-900 overflow-hidden">
+      {/* Match MapLoadingScreen header layout exactly for seamless transition */}
       <header className="h-14 lg:h-16 bg-dark-900 border-b border-dark-600 flex items-center z-50 shrink-0">
         <div className="w-full px-3 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
-            <div className="h-8 lg:h-10 w-32 bg-dark-700 rounded animate-pulse" />
-            <div className="h-8 w-24 bg-dark-700 rounded animate-pulse" />
+            <div className="flex items-center gap-2">
+              <img src="/deflock-icon.png" alt="DeFlock Icon" className="h-8 lg:h-10 w-auto object-contain" />
+              <img src="/deflock-logo.svg" alt="DeFlock Logo" className="h-8 lg:h-10 w-auto object-contain" />
+            </div>
+            <div className="flex items-center gap-2 bg-dark-800 rounded-full px-3 py-1.5">
+              <div className="w-3 h-3 border-2 border-dark-600 border-t-accent rounded-full animate-spin" />
+              <span className="text-sm text-dark-300">Loading...</span>
+            </div>
+            <div className="hidden lg:flex items-center gap-4 flex-shrink-0" />
           </div>
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center relative">
-        <div className="relative z-10 flex flex-col items-center gap-6">
+        <div className="relative z-10 flex flex-col items-center gap-8">
           <div className="flex items-center gap-3">
-            <img
-              src="/deflock-icon.png"
-              alt="DeFlock Icon"
-              className="h-16 lg:h-20 w-auto object-contain"
-            />
-            <img
-              src="/deflock-logo.svg"
-              alt="Loading"
-              className="h-16 lg:h-20 w-auto object-contain"
-            />
+            <img src="/deflock-icon.png" alt="DeFlock Icon" className="h-20 lg:h-24 w-auto object-contain" />
+            <img src="/deflock-logo.svg" alt="DeFlock" className="h-20 lg:h-24 w-auto object-contain" />
           </div>
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-dark-700 border-t-blue-400 rounded-full animate-spin" />
-            <span className="text-dark-400 text-sm font-display">Loading...</span>
+            <div className="w-10 h-10 border-3 border-dark-700 border-t-accent rounded-full animate-spin" />
+            <span className="text-dark-300 text-sm">Initializing...</span>
           </div>
         </div>
       </div>
@@ -69,10 +69,9 @@ function PreloadManager() {
 
   useEffect(() => {
     if (!isInitialized) {
-      const idleId = requestIdleCallback(() => {
-        preloadCameras();
-      }, { timeout: 100 });
-      return () => cancelIdleCallback(idleId);
+      // Start camera fetch immediately — no idle delay.
+      // The map loads tiles in parallel, so no reason to wait.
+      preloadCameras();
     }
   }, [isInitialized, preloadCameras]);
 

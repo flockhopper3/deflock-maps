@@ -8,48 +8,49 @@ interface MapLoadingScreenProps {
   error?: string | null;
   onRetry?: () => void;
   watchdogWarning?: boolean;
+  camerasReady?: boolean;
+  markersReady?: boolean;
 }
 
 /**
- * Full-screen loading experience for the map page.
- * Shows a consistent, branded loading state while:
- * 1. Camera data fetches from network
- * 2. Spatial grid hydrates
- * 3. Map tiles prepare
- * 
- * This eliminates the jarring experience of seeing an empty map
- * before dots appear.
+ * Unified loading overlay for the map page.
+ * Renders as a fixed overlay so the map can load tiles underneath.
+ * Covers all phases: camera fetch → hydrate → map render → ready.
  */
-export function MapLoadingScreen({ 
-  cameraProgress, 
-  cameraCount = 0, 
+export function MapLoadingScreen({
+  cameraProgress,
+  cameraCount = 0,
   error,
   onRetry,
   watchdogWarning = false,
+  camerasReady = false,
+  markersReady = false,
 }: MapLoadingScreenProps) {
   const [dots, setDots] = useState('');
-  const [showTip, setShowTip] = useState(false);
-  
-  // Calculate progress percentage based on phase
+
+  // Calculate progress percentage across ALL phases (camera + map render)
   const getProgressPercent = () => {
+    if (error) return 0;
+    if (markersReady) return 100;
+    if (camerasReady) return 85; // Cameras done, waiting for map to render markers
     switch (cameraProgress) {
       case 'idle': return 10;
-      case 'fetching': return 40;
-      case 'hydrating': return 75;
-      case 'ready': return 100;
-      case 'error': return 0;
-      default: return 20;
+      case 'fetching': return 35;
+      case 'hydrating': return 65;
+      case 'ready': return 85;
+      default: return 15;
     }
   };
-  
-  // Get current phase label
+
+  // Get current phase label — includes map rendering phase
   const getPhaseLabel = () => {
+    if (error) return 'Error';
+    if (camerasReady && !markersReady) return 'Rendering map';
     switch (cameraProgress) {
       case 'idle': return 'Initializing';
       case 'fetching': return 'Fetching cameras';
       case 'hydrating': return 'Preparing map data';
-      case 'ready': return 'Ready';
-      case 'error': return 'Error';
+      case 'ready': return 'Rendering map';
       default: return 'Loading';
     }
   };
@@ -62,14 +63,14 @@ export function MapLoadingScreen({
     return () => clearInterval(interval);
   }, []);
 
-  // Show tip after a delay
-  useEffect(() => {
-    const timeout = setTimeout(() => setShowTip(true), 2000);
-    return () => clearTimeout(timeout);
-  }, []);
+
+  // Determine which stages are complete
+  const fetchDone = cameraProgress === 'hydrating' || cameraProgress === 'ready' || camerasReady;
+  const prepareDone = cameraProgress === 'ready' || camerasReady;
+  const renderActive = camerasReady && !markersReady;
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-dark-900 overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-dark-900 overflow-hidden">
       {/* Header - Same as map page for consistency */}
       <header className="h-14 lg:h-16 bg-dark-900 border-b border-dark-600 flex items-center z-50 shrink-0">
         <div className="w-full px-3 lg:px-6">
@@ -102,7 +103,7 @@ export function MapLoadingScreen({
       {/* Main loading content */}
       <div className="flex-1 flex items-center justify-center relative">
         {/* Animated background - subtle grid pattern */}
-        <div 
+        <div
           className="absolute inset-0 opacity-5"
           style={{
             backgroundImage: `
@@ -112,9 +113,9 @@ export function MapLoadingScreen({
             backgroundSize: '40px 40px',
           }}
         />
-        
+
         {/* Radial glow effect */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: 'radial-gradient(circle at 50% 50%, rgba(30,144,255,0.08) 0%, transparent 50%)',
@@ -183,25 +184,25 @@ export function MapLoadingScreen({
             <div className="w-72 max-w-full">
               {/* Stage indicators */}
               <div className="flex justify-between text-xs text-dark-400 mb-2">
-                <span className={cameraProgress === 'fetching' ? 'text-accent' : cameraProgress === 'hydrating' || cameraProgress === 'ready' ? 'text-success' : ''}>
+                <span className={cameraProgress === 'fetching' && !fetchDone ? 'text-accent' : fetchDone ? 'text-success' : ''}>
                   Fetch
                 </span>
-                <span className={cameraProgress === 'hydrating' ? 'text-accent' : cameraProgress === 'ready' ? 'text-success' : ''}>
+                <span className={cameraProgress === 'hydrating' && !prepareDone ? 'text-accent' : prepareDone ? 'text-success' : ''}>
                   Prepare
                 </span>
-                <span className={cameraProgress === 'ready' ? 'text-success' : ''}>
-                  Ready
+                <span className={renderActive ? 'text-accent' : markersReady ? 'text-success' : ''}>
+                  Render
                 </span>
               </div>
-              
+
               {/* Progress bar */}
               <div className="h-1.5 bg-dark-700 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${getProgressPercent()}%` }}
                 />
               </div>
-              
+
               {/* Camera count */}
               {cameraCount > 0 && (
                 <p className="text-center text-xs text-dark-400 mt-2">
@@ -216,7 +217,7 @@ export function MapLoadingScreen({
                 <p className="text-xs text-amber-300 text-center mb-2">
                   Map source didn't initialize properly
                 </p>
-                <button 
+                <button
                   onClick={onRetry}
                   className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
@@ -225,19 +226,9 @@ export function MapLoadingScreen({
               </div>
             )}
 
-            {/* Loading tip */}
-            {showTip && !watchdogWarning && (
-              <div className="mt-4 px-4 py-3 bg-dark-800/50 rounded-xl border border-dark-700/50 max-w-sm">
-                <p className="text-xs text-dark-400 text-center">
-                  <span className="text-accent font-medium">Did you know?</span> Over 90,000 ALPR cameras 
-                  across the US perform 20 billion scans per month without requiring a warrant.
-                </p>
-              </div>
-            )}
           </div>
         )}
       </div>
     </div>
   );
 }
-
