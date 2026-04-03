@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useCameraStore, useMapStore } from '../../store';
 import { useMapModeStore } from '../../store/mapModeStore';
-import type { MapVisualization, ActiveView } from '../../store/mapModeStore';
+import type { MapVisualization, ActiveView, OverlayState } from '../../store/mapModeStore';
+import type { BoundaryLevel } from '../../services/boundaryDataService';
 import { BottomSheet, type SnapPoint } from '../common/BottomSheet';
 import { HeatmapControls } from '../../modes/heatmap/HeatmapControls';
 import { HeatmapLegend } from '../../modes/heatmap/HeatmapLegend';
@@ -141,38 +142,32 @@ function OverlayToggle({
   label,
   enabled,
   onToggle,
-  disabled,
-  disabledLabel,
+  loading,
 }: {
   label: string;
   enabled: boolean;
   onToggle: () => void;
-  disabled?: boolean;
-  disabledLabel?: string;
+  loading?: boolean;
 }) {
   return (
     <button
-      onClick={disabled ? undefined : onToggle}
+      onClick={onToggle}
       role="switch"
       aria-checked={enabled}
       aria-label={`Toggle ${label}`}
-      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg transition-colors ${
-        disabled
-          ? 'opacity-40 cursor-not-allowed'
-          : 'hover:bg-dark-800/60'
-      }`}
+      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg transition-colors hover:bg-dark-800/60"
     >
       <div className="flex items-center gap-2">
         <span className={`text-xs ${enabled ? 'text-dark-200' : 'text-dark-400'}`}>
           {label}
         </span>
-        {disabledLabel && (
-          <span className="text-[10px] text-dark-600 italic">{disabledLabel}</span>
+        {loading && (
+          <div className="w-3 h-3 border border-dark-400 border-t-transparent rounded-full animate-spin" />
         )}
       </div>
       <div
         className={`w-8 h-[18px] rounded-full relative transition-colors duration-200 ${
-          disabled ? 'bg-dark-700' : enabled ? 'bg-accent' : 'bg-dark-700'
+          enabled ? 'bg-accent' : 'bg-dark-700'
         }`}
       >
         <div
@@ -371,6 +366,16 @@ export function MapPanelContent() {
   const setVisualization = useMapModeStore((s) => s.setVisualization);
   const overlays = useMapModeStore((s) => s.overlays);
   const toggleOverlay = useMapModeStore((s) => s.toggleOverlay);
+  const boundaryLoading = useMapModeStore((s) => s.boundaryLoading);
+  const fetchBoundary = useMapModeStore((s) => s.fetchBoundary);
+  const currentZoom = useMapStore(s => s.zoom);
+
+  const handleBoundaryToggle = (overlayKey: keyof OverlayState, level: BoundaryLevel) => {
+    toggleOverlay(overlayKey);
+    if (!overlays[overlayKey]) {
+      fetchBoundary(level);
+    }
+  };
 
   // Sync pending filters from applied filters on mount
   const [initialized, setInitialized] = useState(false);
@@ -612,7 +617,7 @@ export function MapPanelContent() {
         <CameraViewSelector
           visualization={visualization}
           activeView={activeView}
-          onChange={setVisualization}
+          onChange={(viz) => setVisualization(viz, currentZoom)}
         />
 
         <div className="mt-4 pt-4 border-t border-dark-700/30">
@@ -621,19 +626,20 @@ export function MapPanelContent() {
             <OverlayToggle
               label="State Boundaries"
               enabled={overlays.stateBoundaries}
-              onToggle={() => toggleOverlay('stateBoundaries')}
+              onToggle={() => handleBoundaryToggle('stateBoundaries', 'state')}
+              loading={boundaryLoading.state === 'loading'}
             />
             <OverlayToggle
               label="County Boundaries"
               enabled={overlays.countyBoundaries}
-              onToggle={() => toggleOverlay('countyBoundaries')}
+              onToggle={() => handleBoundaryToggle('countyBoundaries', 'county')}
+              loading={boundaryLoading.county === 'loading'}
             />
             <OverlayToggle
-              label="Police Stations"
-              enabled={overlays.policeStations}
-              onToggle={() => toggleOverlay('policeStations')}
-              disabled
-              disabledLabel="Coming soon"
+              label="Municipal Boundaries"
+              enabled={overlays.municipalBoundaries}
+              onToggle={() => handleBoundaryToggle('municipalBoundaries', 'municipal')}
+              loading={boundaryLoading.municipal === 'loading'}
             />
           </div>
         </div>
