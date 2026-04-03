@@ -72,6 +72,34 @@ interface PhotonResponse {
   features: PhotonFeature[];
 }
 
+// Nominatim types
+interface NominatimResult {
+  place_id: number;
+  licence: string;
+  osm_type: string;
+  osm_id: number;
+  lat: string;
+  lon: string;
+  display_name: string;
+  class: string;
+  type: string;
+  importance?: number;
+  address?: {
+    house_number?: string;
+    road?: string;
+    neighbourhood?: string;
+    suburb?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+    country_code?: string;
+  };
+}
+
 // ============================================================================
 // LOCATIONIQ API (Primary - Best Address Accuracy)
 // ============================================================================
@@ -373,6 +401,122 @@ function photonToResult(feature: PhotonFeature): GeocodingResult {
     description,
     type,
   };
+}
+
+// ============================================================================
+// NOMINATIM GEOCODING (Fallback - OSM's own geocoder, strict 1 req/sec)
+// ============================================================================
+
+const NOMINATIM_API = 'https://nominatim.openstreetmap.org/search';
+
+// Rate limiting for Nominatim (strict policy: max 1 request/second)
+let lastNominatimRequest = 0;
+const NOMINATIM_MIN_INTERVAL = 1100; // 1100ms = ~0.9 req/sec to stay safely under limit
+
+let nominatimRateLimitPromise: Promise<void> = Promise.resolve();
+
+async function waitForNominatimRateLimit(): Promise<void> {
+  nominatimRateLimitPromise = nominatimRateLimitPromise.then(async () => {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastNominatimRequest;
+
+    if (timeSinceLastRequest < NOMINATIM_MIN_INTERVAL) {
+      await new Promise(resolve =>
+        setTimeout(resolve, NOMINATIM_MIN_INTERVAL - timeSinceLastRequest)
+      );
+    }
+
+    lastNominatimRequest = Date.now();
+  });
+
+  return nominatimRateLimitPromise;
+}
+
+/**
+ * Convert Nominatim result to our result format
+ */
+function nominatimToResult(result: NominatimResult): GeocodingResult {
+  const addr = result.address;
+
+  // Determine result type based on class and type (same logic as LocationIQ)
+  let type: GeocodingResult['type'] = 'address';
+  const resultClass = result.class?.toLowerCase() || '';
+  const resultType = result.type?.toLowerCase() || '';
+
+  if (resultClass === 'shop' || resultClass === 'amenity' || resultClass === 'tourism' || resultClass === 'leisure') {
+    type = 'poi';
+  } else if (resultClass === 'place' && ['city', 'town', 'village', 'hamlet'].includes(resultType)) {
+    type = 'city';
+  } else if (resultClass === 'boundary' && resultType === 'administrative') {
+    if (addr?.state && !addr?.city && !addr?.town && !addr?.village && !addr?.road) {
+      type = 'state';
+    } else {
+      type = 'city';
+    }
+  } else if (resultClass === 'highway') {
+    type = 'street';
+  } else if (resultType === 'postcode') {
+    type = 'zip';
+  }
+
+  // Build name - prefer structured address parts
+  let name = '';
+  if (addr?.house_number && addr?.road) {
+    name = `${addr.house_number} ${addr.road}`;
+  } else if (addr?.road) {
+    name = addr.road;
+  } else {
+    name = result.display_name.split(',')[0];
+  }
+
+  // Build description from address parts
+  const descParts: string[] = [];
+  const city = addr?.city || addr?.town || addr?.village;
+  if (city) descParts.push(city);
+  if (addr?.state) descParts.push(addr.state);
+  if (addr?.postcode) descParts.push(addr.postcode);
+
+  const description = descParts.join(', ') || 'United States';
+
+  return {
+    id: `nom-${result.place_id}`,
+    lat: parseFloat(result.lat),
+    lon: parseFloat(result.lon),
+    name: name || description.split(',')[0],
+    description,
+    type,
+  };
+}
+
+/**
+ * Search using Nominatim geocoder (OSM's official geocoder, 1 req/sec limit)
+ */
+export async function searchNominatim(query: string, signal?: AbortSignal): Promise<GeocodingResult[]> {
+  await waitForNominatimRateLimit();
+
+  const params = new URLSearchParams({
+    q: query,
+    format: 'json',
+    addressdetails: '1',
+    limit: '8',
+    countrycodes: 'us',
+    dedupe: '1',
+  });
+
+  const response = await fetch(`${NOMINATIM_API}?${params}`, {
+    signal,
+    headers: {
+      'User-Agent': 'DeFlock Maps (maps.deflock.org)',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Nominatim API error: ${response.status}`);
+  }
+
+  const data: NominatimResult[] = await response.json();
+
+  return data.map(nominatimToResult);
 }
 
 // ============================================================================
