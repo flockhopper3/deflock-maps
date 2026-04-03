@@ -134,7 +134,7 @@ const clusterCountLayer: maplibregl.LayerSpecification = {
   filter: ['has', 'point_count'],
   layout: {
     'text-field': '{point_count_abbreviated}',
-    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+    'text-font': ['Noto Sans Medium'],
     'text-size': 13,
     'text-allow-overlap': true,
   },
