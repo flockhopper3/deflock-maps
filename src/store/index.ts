@@ -8,4 +8,4 @@ export { useDensityStore } from './densityStore';
 export { useNetworkStore } from './networkStore';
 export type { NetworkNode, NetworkLoadPhase } from './networkStore';
 export { useMapModeStore } from './mapModeStore';
-export type { MapVisualization, OverlayState } from './mapModeStore';
+export type { MapVisualization, OverlayState, BoundaryLoadingState, BoundaryLoadStatus } from './mapModeStore';
