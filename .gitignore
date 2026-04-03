@@ -70,3 +70,6 @@ __pycache__/
 .wrangler/
 worker/node_modules/
 .superpowers/
+
+# R2 boundary data (uploaded separately, too large for git)
+data/boundaries/
