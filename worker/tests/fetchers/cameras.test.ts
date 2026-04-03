@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { transformOverpassToGeoJSON, parseDirection, CAMERAS_OVERPASS_QUERY } from '../../src/fetchers/cameras';
+import { transformOverpassToGeoJSON, parseDirection, parseDirections, CAMERAS_OVERPASS_QUERY } from '../../src/fetchers/cameras';
 import type { OverpassResponse } from '../../src/types';
 
 describe('parseDirection', () => {
@@ -15,8 +15,52 @@ describe('parseDirection', () => {
     expect(parseDirection('SW')).toBe(225);
   });
 
-  it('handles semicolon-separated values (takes first)', () => {
+  it('handles semicolon-separated numeric (takes first)', () => {
     expect(parseDirection('90;270')).toBe(90);
+  });
+
+  it('handles semicolon-separated cardinals (takes first)', () => {
+    expect(parseDirection('N;S')).toBe(0);
+    expect(parseDirection('E;W')).toBe(90);
+  });
+
+  it('handles range notation (returns midpoint)', () => {
+    // 338-23: sector from 338° clockwise to 23° → arc=45°, midpoint=0.5°
+    expect(parseDirection('338-23')).toBeCloseTo(0.5, 1);
+    // 48-93: arc=45°, midpoint=70.5°
+    expect(parseDirection('48-93')).toBeCloseTo(70.5, 1);
+    // 0-360: full circle, arc=360° → midpoint=180°
+    expect(parseDirection('0-360')).toBeCloseTo(180, 1);
+  });
+
+  it('handles cardinal range notation', () => {
+    // WSW(247.5)-ESE(112.5): arc = (112.5-247.5+360)%360 = 225°, midpoint = 247.5+112.5 = 0°
+    expect(parseDirection('WSW-ESE')).toBeCloseTo(0, 1);
+  });
+
+  it('handles bound directions (NB/SB/EB/WB)', () => {
+    expect(parseDirection('NB')).toBe(0);
+    expect(parseDirection('SB')).toBe(180);
+    expect(parseDirection('EB')).toBe(90);
+    expect(parseDirection('WB')).toBe(270);
+  });
+
+  it('handles spelled-out cardinals', () => {
+    expect(parseDirection('north')).toBe(0);
+    expect(parseDirection('south')).toBe(180);
+    expect(parseDirection('northeast')).toBe(45);
+    expect(parseDirection('northwest')).toBe(315);
+  });
+
+  it('normalizes degrees to 0-359', () => {
+    expect(parseDirection('360')).toBe(0);
+    expect(parseDirection('400')).toBeCloseTo(40, 1);
+    expect(parseDirection('-10')).toBeCloseTo(350, 1);
+  });
+
+  it('handles comma-separated values', () => {
+    expect(parseDirection('95, 95')).toBe(95);
+    expect(parseDirection('70, 210, 300')).toBe(70);
   });
 
   it('returns null for empty string', () => {
@@ -27,8 +71,38 @@ describe('parseDirection', () => {
     expect(parseDirection(undefined)).toBeNull();
   });
 
-  it('returns null for garbage', () => {
-    expect(parseDirection('not-a-direction')).toBeNull();
+  it('returns null for unresolvable values', () => {
+    expect(parseDirection('forward')).toBeNull();
+    expect(parseDirection('backward')).toBeNull();
+    expect(parseDirection('both')).toBeNull();
+    expect(parseDirection('Flock Raven')).toBeNull();
+  });
+});
+
+describe('parseDirections', () => {
+  it('returns all directions from semicolon-separated values', () => {
+    expect(parseDirections('90;270')).toEqual([90, 270]);
+    expect(parseDirections('N;S')).toEqual([0, 180]);
+    expect(parseDirections('0;90;180;270')).toEqual([0, 90, 180, 270]);
+  });
+
+  it('returns all directions from comma-separated values', () => {
+    expect(parseDirections('70, 210, 300')).toEqual([70, 210, 300]);
+  });
+
+  it('returns single-element array for simple values', () => {
+    expect(parseDirections('180')).toEqual([180]);
+    expect(parseDirections('NW')).toEqual([315]);
+  });
+
+  it('returns empty array for empty/undefined', () => {
+    expect(parseDirections('')).toEqual([]);
+    expect(parseDirections(undefined)).toEqual([]);
+  });
+
+  it('filters out unresolvable tokens', () => {
+    // mixed valid and invalid
+    expect(parseDirections('180;forward;270')).toEqual([180, 270]);
   });
 });
 
@@ -186,6 +260,70 @@ describe('transformOverpassToGeoJSON', () => {
     expect(fc.features[0].properties.directionCardinal).toBe('SW');
     // Numeric "270" → direction=270, no directionCardinal
     expect(fc.features[1].properties.direction).toBe(270);
+    expect(fc.features[1].properties.directionCardinal).toBeUndefined();
+  });
+
+  it('outputs directions array for multi-directional cameras', () => {
+    const response: OverpassResponse = {
+      version: 0.6,
+      generator: 'Overpass API',
+      elements: [
+        {
+          type: 'node', id: 1, lat: 38.0, lon: -77.0,
+          tags: { 'man_made': 'surveillance', 'surveillance:type': 'ALPR', 'direction': '90;270' },
+        },
+        {
+          type: 'node', id: 2, lat: 39.0, lon: -76.0,
+          tags: { 'man_made': 'surveillance', 'surveillance:type': 'ALPR', 'direction': '180' },
+        },
+      ],
+    };
+
+    const fc = transformOverpassToGeoJSON(response);
+    // Multi-direction: direction=first, directions=all
+    expect(fc.features[0].properties.direction).toBe(90);
+    expect(fc.features[0].properties.directions).toEqual([90, 270]);
+    // Single direction: direction set, no directions array
+    expect(fc.features[1].properties.direction).toBe(180);
+    expect(fc.features[1].properties.directions).toBeUndefined();
+  });
+
+  it('handles range notation in transform', () => {
+    const response: OverpassResponse = {
+      version: 0.6,
+      generator: 'Overpass API',
+      elements: [
+        {
+          type: 'node', id: 1, lat: 38.0, lon: -77.0,
+          tags: { 'man_made': 'surveillance', 'surveillance:type': 'ALPR', 'direction': '338-23' },
+        },
+      ],
+    };
+
+    const fc = transformOverpassToGeoJSON(response);
+    expect(fc.features[0].properties.direction).toBeCloseTo(0.5, 1);
+  });
+
+  it('sets directionCardinal from first token of multi-value cardinal tag', () => {
+    const response: OverpassResponse = {
+      version: 0.6,
+      generator: 'Overpass API',
+      elements: [
+        {
+          type: 'node', id: 1, lat: 38.0, lon: -77.0,
+          tags: { 'man_made': 'surveillance', 'surveillance:type': 'ALPR', 'direction': 'N;S' },
+        },
+        {
+          type: 'node', id: 2, lat: 39.0, lon: -76.0,
+          tags: { 'man_made': 'surveillance', 'surveillance:type': 'ALPR', 'direction': 'NB' },
+        },
+      ],
+    };
+
+    const fc = transformOverpassToGeoJSON(response);
+    // "N;S" → first token "N" is a cardinal → directionCardinal="N"
+    expect(fc.features[0].properties.directionCardinal).toBe('N');
+    // "NB" is a bound direction, not a cardinal → no directionCardinal
     expect(fc.features[1].properties.directionCardinal).toBeUndefined();
   });
 });

@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from 'react';
-import { Source, Layer } from 'react-map-gl/maplibre';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { Source, Layer, useMap } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import { useMapStore } from '../../../store';
 import { DIRECTIONAL_ZONE, CAMERA_DETECTION, ZONE_SAFETY_MULTIPLIERS } from '../../../services/routingConfig';
@@ -12,7 +12,7 @@ function createDirectionCone(
   lat: number,
   direction: number,
   // Use routing config values so visualization matches what routing avoids
-  lengthMeters: number = CAMERA_DETECTION.routeBufferMeters * ZONE_SAFETY_MULTIPLIERS.block,
+  lengthMeters: number = CAMERA_DETECTION.routeBufferMeters * ZONE_SAFETY_MULTIPLIERS.block * 0.75,
   spreadDegrees: number = DIRECTIONAL_ZONE.cameraFovDegrees
 ): GeoJSON.Feature<GeoJSON.Polygon> {
   const earthRadius = 6371000; // meters
@@ -209,6 +209,7 @@ interface CameraMarkerLayersProps {
 
 export function CameraMarkerLayers({ cameras, visible, clustered, crossfadeZoom }: CameraMarkerLayersProps) {
   const showCameraLayer = useMapStore(s => s.showCameraLayer);
+  const { current: mapInstance } = useMap();
 
   const cameraLayerVisibility: 'visible' | 'none' = visible ? 'visible' : 'none';
 
@@ -255,6 +256,59 @@ export function CameraMarkerLayers({ cameras, visible, clustered, crossfadeZoom 
     };
   }, [crossfadeZoom, fadeIn]);
 
+  // Imperative crossfade sync — react-map-gl doesn't reliably update paint
+  // when switching between static values and zoom-interpolated expressions.
+  // Force the correct paint onto MapLibre layers whenever crossfadeZoom changes.
+  const prevCrossfadeRef = useRef(crossfadeZoom);
+  useEffect(() => {
+    if (prevCrossfadeRef.current === crossfadeZoom) return;
+    prevCrossfadeRef.current = crossfadeZoom;
+
+    const map = mapInstance?.getMap();
+    if (!map) return;
+
+    const setIfExists = (layerId: string, prop: string, value: unknown) => {
+      try { if (map.getLayer(layerId)) map.setPaintProperty(layerId, prop, value); } catch { /* layer not ready */ }
+    };
+    const setZoomRange = (layerId: string, min: number | undefined) => {
+      try { if (map.getLayer(layerId)) map.setLayerZoomRange(layerId, min ?? 0, 24); } catch { /* layer not ready */ }
+    };
+
+    if (crossfadeZoom != null) {
+      // Switching TO crossfade (auto mode): apply zoom-interpolated opacity
+      const expr = (full: number) => ['interpolate', ['linear'], ['zoom'], crossfadeZoom, 0, crossfadeZoom + 2, full];
+
+      setIfExists('unclustered-point', 'circle-opacity', expr(1));
+      setIfExists('unclustered-point', 'circle-stroke-opacity', expr(1));
+      setIfExists('unclustered-glow', 'circle-opacity', expr(0.4));
+      setIfExists('clusters', 'circle-opacity', expr(1));
+      setIfExists('clusters', 'circle-stroke-opacity', expr(0.5));
+      setIfExists('cluster-count', 'text-opacity', expr(1));
+      setIfExists('direction-cones', 'fill-opacity', expr(0.35));
+      setIfExists('direction-cones-outline', 'line-opacity', expr(0.7));
+
+      setZoomRange('unclustered-glow', crossfadeZoom);
+      setZoomRange('clusters', crossfadeZoom);
+      setZoomRange('cluster-count', crossfadeZoom);
+      setZoomRange('unclustered-point', crossfadeZoom);
+    } else {
+      // Switching FROM crossfade (leaving auto mode): restore static opacity
+      setIfExists('unclustered-point', 'circle-opacity', 1);
+      setIfExists('unclustered-point', 'circle-stroke-opacity', 1);
+      setIfExists('unclustered-glow', 'circle-opacity', 0.4);
+      setIfExists('clusters', 'circle-opacity', 1);
+      setIfExists('clusters', 'circle-stroke-opacity', 0.5);
+      setIfExists('cluster-count', 'text-opacity', 1);
+      setIfExists('direction-cones', 'fill-opacity', 0.35);
+      setIfExists('direction-cones-outline', 'line-opacity', 0.7);
+
+      setZoomRange('unclustered-glow', undefined);
+      setZoomRange('clusters', undefined);
+      setZoomRange('cluster-count', undefined);
+      setZoomRange('unclustered-point', undefined);
+    }
+  }, [crossfadeZoom, mapInstance]);
+
   // Convert cameras to GeoJSON
   const geojsonData = useMemo(
     () => {
@@ -265,6 +319,7 @@ export function CameraMarkerLayers({ cameras, visible, clustered, crossfadeZoom 
   );
 
   // Generate direction cones for cameras with direction data
+  // Multi-directional cameras (directions[]) get one cone per bearing
   const directionConesData = useMemo((): GeoJSON.FeatureCollection => {
     if (!showCameraLayer) {
       return { type: 'FeatureCollection', features: [] };
@@ -277,17 +332,20 @@ export function CameraMarkerLayers({ cameras, visible, clustered, crossfadeZoom 
       console.log(`[CameraMarkerLayers] Cameras with direction: ${camerasWithDirection.length} / ${cameras.length}`);
     }
 
-    return {
-      type: 'FeatureCollection',
-      features: camerasWithDirection.map((camera) => {
-        const cone = createDirectionCone(camera.lon, camera.lat, camera.direction!);
-        cone.properties = {
-          ...cone.properties,
-          ts: camera.osmTimestamp ? new Date(camera.osmTimestamp).getTime() : 0,
-        };
-        return cone;
-      }),
-    };
+    const features: GeoJSON.Feature[] = [];
+    for (const camera of camerasWithDirection) {
+      const bearings = camera.directions && camera.directions.length > 1
+        ? camera.directions
+        : [camera.direction!];
+      const ts = camera.osmTimestamp ? new Date(camera.osmTimestamp).getTime() : 0;
+      for (const bearing of bearings) {
+        const cone = createDirectionCone(camera.lon, camera.lat, bearing);
+        cone.properties = { ...cone.properties, ts };
+        features.push(cone);
+      }
+    }
+
+    return { type: 'FeatureCollection', features };
   }, [cameras, showCameraLayer]);
 
   return (

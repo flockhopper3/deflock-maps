@@ -7,6 +7,7 @@ export interface ALPRCamera {
   brand?: string;
   model?: string;
   direction?: number;
+  directions?: number[];
   directionCardinal?: string;
   surveillanceZone?: 'traffic' | 'town' | 'parking' | 'other';
   mountType?: 'pole' | 'wall' | 'street_light' | 'other';
