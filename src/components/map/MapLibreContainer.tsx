@@ -914,7 +914,7 @@ export const MapLibreView = forwardRef<MapLibreViewHandle, MapLibreViewProps>(
 
       {/* Explore visualization layers */}
       {isHeatmapMode && <HeatmapLayers />}
-      {isMapMode && (mapModeViz === 'auto' || activeView === 'heatmap') && <HeatmapLayers />}
+      {isMapMode && <HeatmapLayers visible={mapModeViz === 'auto' || activeView === 'heatmap'} />}
       {isDotsMode && <DotDensityLayers />}
       {isDensityMode && <DensityLayers />}
       {isNetworkMode && <NetworkLayers />}

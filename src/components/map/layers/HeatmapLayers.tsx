@@ -32,7 +32,7 @@ function camerasToHeatmapGeoJSON(cameras: ALPRCamera[]): GeoJSON.FeatureCollecti
   return { type: 'FeatureCollection', features };
 }
 
-export function HeatmapLayers() {
+export function HeatmapLayers({ visible = true }: { visible?: boolean }) {
   const filteredCameras = useCameraStore(s => s.filteredCameras);
   const cameras = useCameraStore(s => s.cameras);
   // Selective subscriptions: only re-render for settings/mode changes, NOT currentDate
@@ -125,6 +125,7 @@ export function HeatmapLayers() {
         type="heatmap"
         source="cameras-heatmap"
         maxzoom={14}
+        layout={{ visibility: visible ? 'visible' : 'none' }}
         paint={{
           'heatmap-weight': 1,
           'heatmap-intensity': [

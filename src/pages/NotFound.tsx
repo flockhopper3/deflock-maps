@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Map, ArrowLeft } from 'lucide-react';
-import { Seo } from '@/components/common';
+import { Seo, LegacyMapLink } from '@/components/common';
 
 export function NotFound() {
   return (
@@ -44,6 +44,7 @@ export function NotFound() {
               <Map className="w-5 h-5" />
               Go to Map
             </Link>
+            <LegacyMapLink variant="button" />
           </div>
 
           <button

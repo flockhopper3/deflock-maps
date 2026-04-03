@@ -38,7 +38,7 @@ export async function handleFetchRequest(
 
   // Dataset endpoint — strip leading slash
   const key = url.pathname.slice(1);
-  if (!key.endsWith('.geojson.gz')) {
+  if (!key.endsWith('.geojson.gz') && !key.endsWith('.geojson')) {
     return new Response('Not found', { status: 404, headers: cors });
   }
 

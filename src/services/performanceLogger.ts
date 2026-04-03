@@ -308,7 +308,7 @@ export class RouteTimer {
 // Singleton instance
 export const perfLogger = new PerformanceLogger();
 
-// Expose to window for debugging in browser
-if (typeof window !== 'undefined') {
+// Expose to window for debugging in development only
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as unknown as { perfLogger: PerformanceLogger }).perfLogger = perfLogger;
 }

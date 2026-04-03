@@ -13,9 +13,9 @@ interface BoundaryConfig {
 }
 
 const BOUNDARY_CONFIGS: BoundaryConfig[] = [
-  { id: 'state', storeKey: 'stateBoundaries', color: '#6b7280', width: 2.5, opacity: 0.7 },
-  { id: 'county', storeKey: 'countyBoundaries', color: '#4b5563', width: 1.5, opacity: 0.6, minzoom: 6 },
-  { id: 'municipal', storeKey: 'municipalBoundaries', color: '#9ca3af', width: 1.2, opacity: 0.5, minzoom: 8 },
+  { id: 'state', storeKey: 'stateBoundaries', color: '#1e293b', width: 2.5, opacity: 0.8 },
+  { id: 'county', storeKey: 'countyBoundaries', color: '#1e293b', width: 2, opacity: 0.7, minzoom: 6 },
+  { id: 'municipal', storeKey: 'municipalBoundaries', color: '#1e293b', width: 1.8, opacity: 0.6, minzoom: 8 },
 ];
 
 export function BoundaryOverlayLayers() {

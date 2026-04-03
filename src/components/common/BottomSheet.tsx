@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useCallback } from 'react';
+import { ReactNode, useEffect, useCallback, useRef } from 'react';
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 
 export type SnapPoint = 'minimized' | 'peek' | 'full';
@@ -115,13 +115,18 @@ export function BottomSheet({
   // Track drag start height to calculate total drag distance
   const dragStartHeight = useMotionValue(0);
 
+  // Track whether we're actively dragging (for interrupted-drag recovery)
+  const isDragging = useRef(false);
+
   // Handle drag start - record starting height
   const handleDragStart = useCallback(() => {
+    isDragging.current = true;
     dragStartHeight.set(height.get());
   }, [height, dragStartHeight]);
 
   // Handle drag end - snap based on velocity OR drag distance
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    isDragging.current = false;
     const currentHeight = height.get();
     const startHeight = dragStartHeight.get();
     const velocity = info.velocity.y;
@@ -157,11 +162,36 @@ export function BottomSheet({
     const newHeight = height.get() - info.delta.y;
     const minH = getSnapPointHeight('minimized');
     const maxH = getSnapPointHeight('full');
-    
-    // Clamp height between min and max with some rubber banding
-    const clampedHeight = Math.max(minH * 0.8, Math.min(maxH * 1.05, newHeight));
+
+    // Clamp strictly: never go below minimized height (no rubber-band downward)
+    // Allow slight overshoot above full for elastic feel
+    const clampedHeight = Math.max(minH, Math.min(maxH * 1.05, newHeight));
     height.set(clampedHeight);
   }, [height, getSnapPointHeight]);
+
+  // Recovery: if a drag is interrupted (system gesture, touch cancel) without
+  // onDragEnd firing, the height can get stuck at an intermediate value.
+  // Listen for pointer-up/cancel at the document level as a safety net.
+  useEffect(() => {
+    const recover = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        const targetHeight = getSnapPointHeight(snapPoint);
+        animate(height, targetHeight, {
+          type: 'tween',
+          duration: 0.25,
+          ease: [0.25, 1, 0.5, 1],
+        });
+      }
+    };
+
+    document.addEventListener('pointerup', recover);
+    document.addEventListener('pointercancel', recover);
+    return () => {
+      document.removeEventListener('pointerup', recover);
+      document.removeEventListener('pointercancel', recover);
+    };
+  }, [snapPoint, getSnapPointHeight, height]);
 
   // Handle tap on header to toggle between collapsed and full
   const handleHeaderTap = useCallback(() => {
@@ -190,6 +220,7 @@ export function BottomSheet({
           height,
           maxHeight: '95vh',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          boxSizing: 'content-box',
         }}
       >
         {/* Drag Header - entire area is draggable, min 48px for touch target */}
