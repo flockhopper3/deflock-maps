@@ -1,60 +1,51 @@
 import { Source, Layer } from 'react-map-gl/maplibre';
 import { useMapModeStore } from '../../../store';
+import type { OverlayState } from '../../../store/mapModeStore';
+import type { BoundaryLevel } from '../../../services/boundaryDataService';
+
+interface BoundaryConfig {
+  id: BoundaryLevel;
+  storeKey: keyof OverlayState;
+  color: string;
+  width: number;
+  opacity: number;
+  minzoom?: number;
+}
+
+const BOUNDARY_CONFIGS: BoundaryConfig[] = [
+  { id: 'state', storeKey: 'stateBoundaries', color: '#6b7280', width: 2.5, opacity: 0.7 },
+  { id: 'county', storeKey: 'countyBoundaries', color: '#4b5563', width: 1.5, opacity: 0.6, minzoom: 6 },
+  { id: 'municipal', storeKey: 'municipalBoundaries', color: '#9ca3af', width: 1.2, opacity: 0.5, minzoom: 8 },
+];
 
 export function BoundaryOverlayLayers() {
-  const overlays = useMapModeStore(s => s.overlays);
+  const overlays = useMapModeStore((s) => s.overlays);
+  const boundaryData = useMapModeStore((s) => s.boundaryData);
 
   return (
     <>
-      {/* State boundaries — outline only */}
-      <Source id="state-boundaries" type="geojson" data="/states-metrics.geojson">
-        <Layer
-          id="state-boundaries-line"
-          type="line"
-          source="state-boundaries"
-          layout={{ visibility: overlays.stateBoundaries ? 'visible' : 'none' }}
-          paint={{
-            'line-color': '#6b7280',
-            'line-width': 1.5,
-            'line-opacity': 0.6,
-          }}
-        />
-      </Source>
+      {BOUNDARY_CONFIGS.map((config) => {
+        const isOn = overlays[config.storeKey];
+        const data = boundaryData[config.id];
 
-      {/* County boundaries — outline only */}
-      <Source id="county-boundaries" type="geojson" data="/counties-metrics.geojson">
-        <Layer
-          id="county-boundaries-line"
-          type="line"
-          source="county-boundaries"
-          layout={{ visibility: overlays.countyBoundaries ? 'visible' : 'none' }}
-          minzoom={6}
-          paint={{
-            'line-color': '#4b5563',
-            'line-width': 0.8,
-            'line-opacity': 0.5,
-          }}
-        />
-      </Source>
+        if (!isOn || !data) return null;
 
-      {/* Police stations — placeholder, hidden until data is available */}
-      {overlays.policeStations && (
-        <Source id="police-stations" type="geojson" data="/police-stations.geojson">
-          <Layer
-            id="police-stations-circle"
-            type="circle"
-            source="police-stations"
-            minzoom={8}
-            paint={{
-              'circle-color': '#0080BC',
-              'circle-radius': 5,
-              'circle-stroke-width': 1.5,
-              'circle-stroke-color': '#93c5fd',
-              'circle-opacity': 0.8,
-            }}
-          />
-        </Source>
-      )}
+        return (
+          <Source key={config.id} id={`${config.id}-boundaries`} type="geojson" data={data}>
+            <Layer
+              id={`${config.id}-boundaries-line`}
+              type="line"
+              source={`${config.id}-boundaries`}
+              minzoom={config.minzoom}
+              paint={{
+                'line-color': config.color,
+                'line-width': config.width,
+                'line-opacity': config.opacity,
+              }}
+            />
+          </Source>
+        );
+      })}
     </>
   );
 }
