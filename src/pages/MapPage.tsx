@@ -10,7 +10,7 @@ import { MobileTabDrawer } from '@/components/panels/MobileTabDrawer';
 import { NetworkLegendBar } from '@/components/map/NetworkLegendBar';
 import { DensityLegendBar } from '@/components/map/DensityLegendBar';
 import { NetworkAgencyCount } from '@/components/map/NetworkAgencyCount';
-import { Seo } from '@/components/common';
+import { Seo, LegacyMapLink } from '@/components/common';
 import { useCameraStore, useMapStore, useAppModeStore } from '@/store';
 import { MapStyleControl } from '@/components/map/MapStyleControl';
 import { TimelineBar } from '@/modes/timeline/TimelineBar';
@@ -312,8 +312,10 @@ export function MapPage() {
                 </button>
               </div>
 
-              {/* Desktop: Right spacer */}
-              <div className="hidden lg:flex items-center flex-shrink-0" />
+              {/* Desktop: Legacy map link */}
+              <div className="hidden lg:flex items-center flex-shrink-0">
+                <LegacyMapLink variant="header" />
+              </div>
             </div>
           </div>
         </header>
@@ -343,6 +345,9 @@ export function MapPage() {
                   <span>{label}</span>
                 </button>
               ))}
+            </div>
+            <div className="border-t border-dark-600 mt-1 pt-1 px-4 pb-2">
+              <LegacyMapLink variant="menu-item" />
             </div>
           </nav>
         )}
