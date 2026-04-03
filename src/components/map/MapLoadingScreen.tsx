@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CameraLoadPhase } from '@/store/cameraStore';
+import { LegacyMapLink } from '@/components/common';
 
 interface MapLoadingScreenProps {
   cameraProgress: CameraLoadPhase;
@@ -143,12 +144,15 @@ export function MapLoadingScreen({
                 {error}
               </p>
             </div>
-            <button 
-              onClick={onRetry}
-              className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-semibold rounded-md transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="flex flex-col gap-3 w-full max-w-xs">
+              <button
+                onClick={onRetry}
+                className="w-full px-6 py-3 bg-accent hover:bg-accent-hover text-white font-semibold rounded-md transition-colors"
+              >
+                Try Again
+              </button>
+              <LegacyMapLink variant="button" className="flex-none" />
+            </div>
           </div>
         ) : (
           // Loading state
